@@ -1,91 +1,194 @@
+(function (window, document) {
+    "use strict";
 
-import java.sql.*;
-import java.util.Date;
-import java.util.Enumeration;
+    var tabs = {};
 
-import java.lang.*;
-public class JDBCdemo {
-    public static void main(String[] args) {
-        String jdbcURL = "jdbc:mysql://localhost/payroll_service? allowPublicKeyRetrieval=true & useSSL=false";
-        String jdbcURL = "jdbc:mysql://localhost:3306/payroll_service?verifyServerCertificate=false&useSSL=true";
-        String userName = "root";
-        String password = "Olaybhai";
-        Connection con;
-        Connection con=null;
-        Statement stmt=null;
-        ResultSet rs=null;
-        try {
-            //1st step to load driver
-            Class.forName("com.mysql.jdbc.Driver");
-            System.out.println("Driver loaded");
-            System.out.println("Driver loaded!");
-        } catch (ClassNotFoundException e) {
-            throw new IllegalStateException("Cannot find the driver in the classpath!", e);
+    function changeElementClass(element, classValue) {
+        if (element.getAttribute("className")) {
+            element.setAttribute("className", classValue);
+        } else {
+            element.setAttribute("class", classValue);
         }
-        listDrivers();
+    }
 
-        try {
-            System.out.println("Connecting to database:" + jdbcURL);
-            // 2nd is to get the connection object
-            con = DriverManager.getConnection(jdbcURL, userName, password);
-            System.out.println("Connection is successful!!!!" + con);
-            String sql = "SELECT * from emppayroll;";
-            //3rd to create the statement object
-            stmt = con.createStatement();
-            //4th is to execute SQL query
-            rs = stmt.executeQuery(sql);
-            while(rs.next()){
-                int id = rs.getInt("id");
-                String name = rs.getString("Name");
-                String phone = rs.getString("phone_no");
-                String address = rs.getString("Address");
-                String department = rs.getString("Department");
-                double basic_pay = rs.getDouble("basic_pay");
-                double deductions = rs.getDouble("deductions");
-                double tax_pay = rs.getDouble("taxable_pay");
-                double income_tax = rs.getDouble("income_tax");
-                double net_pay = rs.getDouble("net_pay");
-                Date start = rs.getDate("start");
-                String gender;
-                try {
-                        gender = String.valueOf(rs.getString("Gender").charAt(0));
-                    }
+    function getClassAttribute(element) {
+        if (element.getAttribute("className")) {
+            return element.getAttribute("className");
+        } else {
+            return element.getAttribute("class");
+        }
+    }
 
-                catch (Exception e)
-                {
-                    gender = "N";
-                    e.printStackTrace();
+    function addClass(element, classValue) {
+        changeElementClass(element, getClassAttribute(element) + " " + classValue);
+    }
+
+    function removeClass(element, classValue) {
+        changeElementClass(element, getClassAttribute(element).replace(classValue, ""));
+    }
+
+    function initTabs() {
+        var container = document.getElementById("tabs");
+
+        tabs.tabs = findTabs(container);
+        tabs.titles = findTitles(tabs.tabs);
+        tabs.headers = findHeaders(container);
+        tabs.select = select;
+        tabs.deselectAll = deselectAll;
+        tabs.select(0);
+
+        return true;
+    }
+
+    function getCheckBox() {
+        return document.getElementById("line-wrapping-toggle");
+    }
+
+    function getLabelForCheckBox() {
+        return document.getElementById("label-for-line-wrapping-toggle");
+    }
+
+    function findCodeBlocks() {
+        var spans = document.getElementById("tabs").getElementsByTagName("span");
+        var codeBlocks = [];
+        for (var i = 0; i < spans.length; ++i) {
+            if (spans[i].className.indexOf("code") >= 0) {
+                codeBlocks.push(spans[i]);
+            }
+        }
+        return codeBlocks;
+    }
+
+    function forAllCodeBlocks(operation) {
+        var codeBlocks = findCodeBlocks();
+
+        for (var i = 0; i < codeBlocks.length; ++i) {
+            operation(codeBlocks[i], "wrapped");
+        }
+    }
+
+    function toggleLineWrapping() {
+        var checkBox = getCheckBox();
+
+        if (checkBox.checked) {
+            forAllCodeBlocks(addClass);
+        } else {
+            forAllCodeBlocks(removeClass);
+        }
+    }
+
+    function initControls() {
+        if (findCodeBlocks().length > 0) {
+            var checkBox = getCheckBox();
+            var label = getLabelForCheckBox();
+
+            checkBox.onclick = toggleLineWrapping;
+            checkBox.checked = false;
+
+            removeClass(label, "hidden");
+         }
+    }
+
+    function switchTab() {
+        var id = this.id.substr(1);
+
+        for (var i = 0; i < tabs.tabs.length; i++) {
+            if (tabs.tabs[i].id === id) {
+                tabs.select(i);
+                break;
+            }
+        }
+
+        return false;
+    }
+
+    function select(i) {
+        this.deselectAll();
+
+        changeElementClass(this.tabs[i], "tab selected");
+        changeElementClass(this.headers[i], "selected");
+
+        while (this.headers[i].firstChild) {
+            this.headers[i].removeChild(this.headers[i].firstChild);
+        }
+
+        var h2 = document.createElement("H2");
+
+        h2.appendChild(document.createTextNode(this.titles[i]));
+        this.headers[i].appendChild(h2);
+    }
+
+    function deselectAll() {
+        for (var i = 0; i < this.tabs.length; i++) {
+            changeElementClass(this.tabs[i], "tab deselected");
+            changeElementClass(this.headers[i], "deselected");
+
+            while (this.headers[i].firstChild) {
+                this.headers[i].removeChild(this.headers[i].firstChild);
+            }
+
+            var a = document.createElement("A");
+
+            a.setAttribute("id", "ltab" + i);
+            a.setAttribute("href", "#tab" + i);
+            a.onclick = switchTab;
+            a.appendChild(document.createTextNode(this.titles[i]));
+
+            this.headers[i].appendChild(a);
+        }
+    }
+
+    function findTabs(container) {
+        return findChildElements(container, "DIV", "tab");
+    }
+
+    function findHeaders(container) {
+        var owner = findChildElements(container, "UL", "tabLinks");
+        return findChildElements(owner[0], "LI", null);
+    }
+
+    function findTitles(tabs) {
+        var titles = [];
+
+        for (var i = 0; i < tabs.length; i++) {
+            var tab = tabs[i];
+            var header = findChildElements(tab, "H2", null)[0];
+
+            header.parentNode.removeChild(header);
+
+            if (header.innerText) {
+                titles.push(header.innerText);
+            } else {
+                titles.push(header.textContent);
+            }
+        }
+
+        return titles;
+    }
+
+    function findChildElements(container, name, targetClass) {
+        var elements = [];
+        var children = container.childNodes;
+
+        for (var i = 0; i < children.length; i++) {
+            var child = children.item(i);
+
+            if (child.nodeType === 1 && child.nodeName === name) {
+                if (targetClass && child.className.indexOf(targetClass) < 0) {
+                    continue;
                 }
 
+                elements.push(child);
+            }
+        }
 
-                System.out.println(id + "," + name + "," + phone + "," + address +  "," +
-                        department + "," + basic_pay + "," + deductions + "," + net_pay + "," + start+" ,"+gender);
-            }
-        }
-        catch(Exception e) {
-            e.printStackTrace();
-        }
-        finally
-        {
-            try
-            {
-                con.close();
-                rs.close();
-                stmt.close();
-            }
-            catch(SQLException e)
-            {
-                e.printStackTrace();
-            }
-
-        }
+        return elements;
     }
 
-    private static void listDrivers() {
-        Enumeration<Driver> driverList = DriverManager.getDrivers();
-        while (driverList.hasMoreElements()) {
-            Driver driverClass = driverList.nextElement();
-            System.out.println(driverClass.getClass().getName());
-        }
-    }
-}
+    // Entry point.
+
+    window.onload = function() {
+        initTabs();
+        initControls();
+    };
+} (window, window.document)); 
