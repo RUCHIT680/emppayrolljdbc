@@ -47,6 +47,4 @@ public class testEmpPayRoll {
         Assert.assertEquals(e.getSalary(), salary,0);
     }
 } 
-    
-
-}
+    }

@@ -1,4 +1,3 @@
-
 public class EmployeeOperations {
     public void updateEmployeeObject(String name, String value){
         for(Emp_info e: EmpUpdate.employee_list){
@@ -18,5 +17,3 @@ public class EmployeeOperations {
         return emp;
     }
 } 
-
-
