@@ -1,194 +1,120 @@
-(function (window, document) {
-    "use strict";
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
-    var tabs = {};
-
-    function changeElementClass(element, classValue) {
-        if (element.getAttribute("className")) {
-            element.setAttribute("className", classValue);
-        } else {
-            element.setAttribute("class", classValue);
-        }
+class EmpUpdate implements CRUD
+{
+    static List<Emp_info> employee_list = new ArrayList<>();
+    private PreparedStatement p_stmt;
+    private static EmpUpdate emp_DBO;
+    public EmpUpdate(){
+    }
+    public static EmpUpdate getInstance(){
+        if(emp_DBO == null)
+            emp_DBO = new EmpUpdate();
+        return emp_DBO;
     }
 
-    function getClassAttribute(element) {
-        if (element.getAttribute("className")) {
-            return element.getAttribute("className");
-        } else {
-            return element.getAttribute("class");
-        }
-    }
-
-    function addClass(element, classValue) {
-        changeElementClass(element, getClassAttribute(element) + " " + classValue);
-    }
-
-    function removeClass(element, classValue) {
-        changeElementClass(element, getClassAttribute(element).replace(classValue, ""));
-    }
-
-    function initTabs() {
-        var container = document.getElementById("tabs");
-
-        tabs.tabs = findTabs(container);
-        tabs.titles = findTitles(tabs.tabs);
-        tabs.headers = findHeaders(container);
-        tabs.select = select;
-        tabs.deselectAll = deselectAll;
-        tabs.select(0);
-
-        return true;
-    }
-
-    function getCheckBox() {
-        return document.getElementById("line-wrapping-toggle");
-    }
-
-    function getLabelForCheckBox() {
-        return document.getElementById("label-for-line-wrapping-toggle");
-    }
-
-    function findCodeBlocks() {
-        var spans = document.getElementById("tabs").getElementsByTagName("span");
-        var codeBlocks = [];
-        for (var i = 0; i < spans.length; ++i) {
-            if (spans[i].className.indexOf("code") >= 0) {
-                codeBlocks.push(spans[i]);
+    @Override
+    public List<Emp_info> readData(Connection con) throws CustomException {
+    public List<Emp_info> readData() throws CustomException,SQLException {
+        JDBCdemo jdbc_con = new JDBCdemo();
+        Connection con = jdbc_con.getConnection();
+        try{
+            String query = "Select * from emppayroll";
+            Statement stmt = con.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            while (rs.next()){
+                int id = rs.getInt("id");
+                String name = rs.getString("Name");
+                String phone = rs.getString("phone_no");
+                String address = rs.getString("Address");
+                String department = rs.getString("Department");
+                Date start = rs.getDate("start");
+                char gender = rs.getString("gender").charAt(0);
+                double salary = rs.getDouble("salary");
+                Emp_info emp = new Emp_info(id,name,phone,address,department,gender,salary,start);
+                employee_list.add(emp);
+                this.employee_list.add(emp);
             }
+        }catch(Exception e){
+            throw new CustomException("Read Process Unsuccessful");
+        }finally {
+            con.close();
         }
-        return codeBlocks;
+        return employee_list;
     }
+    @Override
+    public void insertData() { }
 
-    function forAllCodeBlocks(operation) {
-        var codeBlocks = findCodeBlocks();
+    @Override
+    public void updateData(Connection con, String column, String name, String value) throws CustomException {
+    public void updateData(String column, String name, String value) throws CustomException, SQLException {
+        JDBCdemo jdbc_con = new JDBCdemo();
+        Connection con = jdbc_con.getConnection();
+        try{
+            PreparedStatement stmt = con.prepareStatement("Update emppayroll set salary = ? where name = ?");
+            stmt.setDouble(1,Double.parseDouble(value));
+            stmt.setString(2,name);
+            stmt.executeUpdate();
 
-        for (var i = 0; i < codeBlocks.length; ++i) {
-            operation(codeBlocks[i], "wrapped");
-        }
-    }
-
-    function toggleLineWrapping() {
-        var checkBox = getCheckBox();
-
-        if (checkBox.checked) {
-            forAllCodeBlocks(addClass);
-        } else {
-            forAllCodeBlocks(removeClass);
-        }
-    }
-
-    function initControls() {
-        if (findCodeBlocks().length > 0) {
-            var checkBox = getCheckBox();
-            var label = getLabelForCheckBox();
-
-            checkBox.onclick = toggleLineWrapping;
-            checkBox.checked = false;
-
-            removeClass(label, "hidden");
-         }
-    }
-
-    function switchTab() {
-        var id = this.id.substr(1);
-
-        for (var i = 0; i < tabs.tabs.length; i++) {
-            if (tabs.tabs[i].id === id) {
-                tabs.select(i);
-                break;
-            }
-        }
-
-        return false;
-    }
-
-    function select(i) {
-        this.deselectAll();
-
-        changeElementClass(this.tabs[i], "tab selected");
-        changeElementClass(this.headers[i], "selected");
-
-        while (this.headers[i].firstChild) {
-            this.headers[i].removeChild(this.headers[i].firstChild);
-        }
-
-        var h2 = document.createElement("H2");
-
-        h2.appendChild(document.createTextNode(this.titles[i]));
-        this.headers[i].appendChild(h2);
-    }
-
-    function deselectAll() {
-        for (var i = 0; i < this.tabs.length; i++) {
-            changeElementClass(this.tabs[i], "tab deselected");
-            changeElementClass(this.headers[i], "deselected");
-
-            while (this.headers[i].firstChild) {
-                this.headers[i].removeChild(this.headers[i].firstChild);
-            }
-
-            var a = document.createElement("A");
-
-            a.setAttribute("id", "ltab" + i);
-            a.setAttribute("href", "#tab" + i);
-            a.onclick = switchTab;
-            a.appendChild(document.createTextNode(this.titles[i]));
-
-            this.headers[i].appendChild(a);
+            p_stmt = con.prepareStatement("Update employee set salary = ? where name = ?");
+            p_stmt.setDouble(1,Double.parseDouble(value));
+            p_stmt.setString(2,name);
+            p_stmt.executeUpdate();
+        }catch(Exception e){
+            throw new CustomException("Read Process Unsuccessful");
+        }finally {
+            if(con != null)
+                con.close();
         }
     }
 
-    function findTabs(container) {
-        return findChildElements(container, "DIV", "tab");
-    }
+    @Override
+    public void deleteData() { }
 
-    function findHeaders(container) {
-        var owner = findChildElements(container, "UL", "tabLinks");
-        return findChildElements(owner[0], "LI", null);
-    }
-
-    function findTitles(tabs) {
-        var titles = [];
-
-        for (var i = 0; i < tabs.length; i++) {
-            var tab = tabs[i];
-            var header = findChildElements(tab, "H2", null)[0];
-
-            header.parentNode.removeChild(header);
-
-            if (header.innerText) {
-                titles.push(header.innerText);
-            } else {
-                titles.push(header.textContent);
-            }
+    public ResultSet getEmployeeDataFromDB(String query) {
+        ResultSet rs = null;
+        Connection con = null;
+        try{
+            JDBCdemo jdbc_con = new JDBCdemo();
+            con = jdbc_con.getConnection();
+            Statement stmt = con.createStatement();
+            rs = stmt.executeQuery(query);
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-
-        return titles;
+        return rs;
     }
 
-    function findChildElements(container, name, targetClass) {
-        var elements = [];
-        var children = container.childNodes;
-
-        for (var i = 0; i < children.length; i++) {
-            var child = children.item(i);
-
-            if (child.nodeType === 1 && child.nodeName === name) {
-                if (targetClass && child.className.indexOf(targetClass) < 0) {
-                    continue;
-                }
-
-                elements.push(child);
-            }
+    public Emp_info getPayrollDataByName(String name) throws SQLException {
+        JDBCdemo jdbc_con = new JDBCdemo();
+        Connection con = jdbc_con.getConnection();
+        p_stmt = con.prepareStatement("Select * from payroll where name = ?");
+        p_stmt.setString(1,name);
+        ResultSet rs = p_stmt.executeQuery();
+        Emp_info emp = null;
+        while(rs.next()){
+            int id = rs.getInt("id");
+            String phone = rs.getString("phone_no");
+            String address = rs.getString("Address");
+            String department = rs.getString("Department");
+            Date start = rs.getDate("start");
+            char gender = rs.getString("gender").charAt(0);
+            double salary = rs.getDouble("salary");
+            emp = new Emp_info(id,name,phone,address,department,gender,salary,start);
         }
-
-        return elements;
+        return emp;
     }
 
-    // Entry point.
-
-    window.onload = function() {
-        initTabs();
-        initControls();
-    };
-} (window, window.document)); 
+    public ResultSet retrieveEmployeesByDate(String startDate, String endDate){
+        String query = "Select * from emppayroll where start date between " + startDate + " and " + endDate;
+        ResultSet rs = this.getEmployeeDataFromDB(query);
+        return rs;
+    }
+} 
